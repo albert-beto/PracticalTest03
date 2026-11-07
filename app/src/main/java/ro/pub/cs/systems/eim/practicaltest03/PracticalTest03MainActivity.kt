@@ -1,5 +1,6 @@
 package ro.pub.cs.systems.eim.practicaltest03
 
+import android.content.Intent
 import android.os.Bundle
 import android.os.PersistableBundle
 import android.view.View
@@ -9,6 +10,7 @@ import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -29,6 +31,28 @@ class PracticalTest03MainActivity : AppCompatActivity() {
     private var produse = ArrayList<String>()
     private var total = 0
     private val buttonClickListener = ButtonClickListener()
+
+    private val secondaryActivityLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            result ->
+            if (result.resultCode == RESULT_OK) {
+                val total = result.data?.getIntExtra(Constants.TOTAL, 0)
+                val voucher = result.data?.getStringExtra(Constants.VOUCHER)
+                if (voucher == null)
+                    Toast.makeText(this@PracticalTest03MainActivity, "Paid ${total} items", Toast.LENGTH_SHORT).show()
+                else
+                    Toast.makeText(this@PracticalTest03MainActivity, "Paid ${total} items with code ${voucher}",
+                        Toast.LENGTH_SHORT).show()
+                produse = ArrayList<String>()
+                recalculeazaTotal()
+                editTextProduse.setText("")
+            } else if (result.resultCode == RESULT_FIRST_USER)
+                Toast.makeText(this@PracticalTest03MainActivity, "Back to editing", Toast.LENGTH_SHORT).show()
+            else {
+                Toast.makeText(this@PracticalTest03MainActivity, "Checkout canceled", Toast.LENGTH_SHORT).show()
+            }
+
+        }
     private lateinit var editTextTotal: EditText
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -86,6 +110,20 @@ class PracticalTest03MainActivity : AppCompatActivity() {
                         produse.removeAt(produse.size - 1)
                         recalculeazaTotal()
                         editTextProduse.setText(produse.joinToString("\n"))
+                    }
+                }
+                R.id.ButtonCheckout -> {
+                    if (produse.isEmpty())
+                        Toast.makeText(this@PracticalTest03MainActivity, "Cos gol", Toast.LENGTH_SHORT).show()
+                    else {
+                        val bundle = Bundle()
+                        bundle.putInt(Constants.TOTAL, total)
+                        bundle.putStringArrayList(Constants.PRODUSE, produse)
+                        val intent = Intent(this@PracticalTest03MainActivity,
+                            PracticalTest03CheckoutActivity::class.java)
+                        intent.putExtra(Constants.BUNDLE, bundle)
+                        secondaryActivityLauncher.launch(intent)
+
                     }
                 }
             }
