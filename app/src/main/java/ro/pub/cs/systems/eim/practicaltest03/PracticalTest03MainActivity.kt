@@ -1,12 +1,35 @@
 package ro.pub.cs.systems.eim.practicaltest03
 
 import android.os.Bundle
+import android.os.PersistableBundle
+import android.view.View
+import android.widget.Button
+import android.widget.EditText
+import android.widget.RadioButton
+import android.widget.RadioGroup
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 
 class PracticalTest03MainActivity : AppCompatActivity() {
+
+    private lateinit var editTextProdus: EditText
+    private lateinit var editTextCantitate: EditText
+    private lateinit var radioGroupPrioritate: RadioGroup
+    private lateinit var radioButtonLow: RadioButton
+    private lateinit var radioButtonNormal: RadioButton
+    private lateinit var radioButtonHigh: RadioButton
+    private lateinit var buttonAdd: Button
+    private lateinit var buttonUndo: Button
+    private lateinit var buttonCheckout: Button
+    private lateinit var editTextProduse: EditText
+
+    private var produse = ArrayList<String>()
+    private var total = 0
+    private val buttonClickListener = ButtonClickListener()
+    private lateinit var editTextTotal: EditText
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -16,5 +39,84 @@ class PracticalTest03MainActivity : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
+        editTextProdus = findViewById(R.id.EditTextProdus)
+        editTextCantitate = findViewById(R.id.EditTextCantitate)
+        editTextProduse = findViewById(R.id.EditTextProduse)
+        editTextTotal = findViewById(R.id.EditTextTotal)
+        radioGroupPrioritate = findViewById(R.id.RadioGroupPrioritate)
+        radioButtonLow = findViewById(R.id.RadioButtonLow)
+        radioButtonNormal = findViewById(R.id.RadioButtonNormal)
+        radioButtonHigh = findViewById(R.id.RadioButtonHigh)
+        buttonAdd = findViewById(R.id.ButtonAdd)
+        buttonUndo = findViewById(R.id.ButtonUndo)
+        buttonCheckout = findViewById(R.id.ButtonCheckout)
+
+        radioGroupPrioritate.check(R.id.RadioButtonNormal)
+
+        buttonAdd.setOnClickListener(buttonClickListener)
+        buttonUndo.setOnClickListener(buttonClickListener)
+        buttonCheckout.setOnClickListener(buttonClickListener)
     }
+
+    private inner class ButtonClickListener: View.OnClickListener {
+        override fun onClick(view: View) {
+            when (view.id) {
+                R.id.ButtonAdd -> {
+                    if (editTextProdus.text.isEmpty() || editTextCantitate.text.isEmpty() || editTextCantitate.text.toString().toInt() == 0)
+                        Toast.makeText(this@PracticalTest03MainActivity, "Introdu produs sau cantitiate", Toast.LENGTH_SHORT).show()
+                    else {
+                        var message = editTextCantitate.text.toString() + " x " + editTextProdus.text.toString()
+                        if (radioGroupPrioritate.checkedRadioButtonId == R.id.RadioButtonHigh) {
+                            message = "! " + message
+                        } else {
+                            message = "  " + message
+                        }
+                        produse.add(message)
+                        editTextProduse.setText(produse.joinToString("\n"))
+                        recalculeazaTotal()
+                        editTextProdus.setText("")
+                        editTextCantitate.setText("")
+                        radioGroupPrioritate.check(R.id.RadioButtonNormal)
+                    }
+                }
+                R.id.ButtonUndo -> {
+                    if(produse.isEmpty())
+                        Toast.makeText(this@PracticalTest03MainActivity, "Cos gol", Toast.LENGTH_SHORT).show()
+                    else {
+                        produse.removeAt(produse.size - 1)
+                        recalculeazaTotal()
+                        editTextProduse.setText(produse.joinToString("\n"))
+                    }
+                }
+            }
+        }
+    }
+
+    private fun recalculeazaTotal() {
+        total = 0
+        for (produs in produse) {
+            val new = produs.substring(2)
+            total += new.split(" x ")[0].toInt()
+        }
+        editTextTotal.setText("Total: " + total.toString() + " buc.")
+    }
+
+    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
+        super.onRestoreInstanceState(savedInstanceState)
+        if (savedInstanceState.containsKey(Constants.PRODUSE)) {
+            produse = savedInstanceState.getStringArrayList(Constants.PRODUSE) ?: ArrayList()
+            recalculeazaTotal()
+            editTextProduse.setText(produse.joinToString("\n"))
+        }
+        if (savedInstanceState.containsKey(Constants.PRIORITATE))
+            radioGroupPrioritate.check(savedInstanceState.getInt(Constants.PRIORITATE))
+
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putStringArrayList(Constants.PRODUSE, produse)
+        outState.putInt(Constants.PRIORITATE, radioGroupPrioritate.checkedRadioButtonId)
+    }
+
 }

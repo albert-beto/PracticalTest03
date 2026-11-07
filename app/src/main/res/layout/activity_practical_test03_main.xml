@@ -106,12 +106,14 @@
         android:layout_height="wrap_content"
         android:enabled="false"
         android:text=""
+        android:saveEnabled="false"
         android:hint="produse"/>
     <EditText
         android:id="@+id/EditTextTotal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:enabled="false"
+        android:saveEnabled="false"
         android:text="Total: 0 buc." />
 
 
