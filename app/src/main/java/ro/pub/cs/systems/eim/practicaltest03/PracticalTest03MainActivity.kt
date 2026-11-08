@@ -1,8 +1,12 @@
 package ro.pub.cs.systems.eim.practicaltest03
 
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import android.os.PersistableBundle
+import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
@@ -12,6 +16,7 @@ import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 
@@ -31,6 +36,21 @@ class PracticalTest03MainActivity : AppCompatActivity() {
     private var produse = ArrayList<String>()
     private var total = 0
     private val buttonClickListener = ButtonClickListener()
+
+    private inner class CountdownReceiver: BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val total = intent.getIntExtra(Constants.TOTAL, 0)
+            val index = intent.getIntExtra(Constants.EXTRA_INDEX, 0)
+
+            val label = if (intent.action == Constants.ACTION_TICK) "TICK" else "TOCK"
+            if (index == 5) {
+                Toast.makeText(this@PracticalTest03MainActivity, "Countdown finished", Toast.LENGTH_SHORT).show()
+            }
+            Log.d(Constants.TAG, "${label} ${index}/5 (total ${total})")
+        }
+    }
+    private val countdownReceiver = CountdownReceiver()
+    private val intentFilter = IntentFilter()
 
     private val secondaryActivityLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -80,6 +100,11 @@ class PracticalTest03MainActivity : AppCompatActivity() {
         buttonAdd.setOnClickListener(buttonClickListener)
         buttonUndo.setOnClickListener(buttonClickListener)
         buttonCheckout.setOnClickListener(buttonClickListener)
+
+        intentFilter.addAction(Constants.ACTION_TICK)
+        intentFilter.addAction(Constants.ACTION_TOCK)
+
+        ContextCompat.registerReceiver(this, countdownReceiver, intentFilter, ContextCompat.RECEIVER_NOT_EXPORTED)
     }
 
     private inner class ButtonClickListener: View.OnClickListener {
@@ -98,6 +123,12 @@ class PracticalTest03MainActivity : AppCompatActivity() {
                         produse.add(message)
                         editTextProduse.setText(produse.joinToString("\n"))
                         recalculeazaTotal()
+                        if (total > Constants.TOTAL_THRESHOLD) {
+                            val intent = Intent(this@PracticalTest03MainActivity,
+                                PracticalTest03Service::class.java)
+                            intent.putExtra(Constants.TOTAL,total)
+                            startService(intent)
+                        }
                         editTextProdus.setText("")
                         editTextCantitate.setText("")
                         radioGroupPrioritate.check(R.id.RadioButtonNormal)
@@ -155,6 +186,13 @@ class PracticalTest03MainActivity : AppCompatActivity() {
         super.onSaveInstanceState(outState)
         outState.putStringArrayList(Constants.PRODUSE, produse)
         outState.putInt(Constants.PRIORITATE, radioGroupPrioritate.checkedRadioButtonId)
+    }
+
+    override fun onDestroy() {
+        val intent = Intent(this, PracticalTest03Service::class.java)
+        stopService(intent)
+        unregisterReceiver(countdownReceiver)
+        super.onDestroy()
     }
 
 }

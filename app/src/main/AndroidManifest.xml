@@ -25,6 +25,11 @@
             android:name=".PracticalTest03CheckoutActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
+        <service
+            android:name=".PracticalTest03Service"
+            android:enabled="true"
+            android:exported="false"></service>
     </application>
 
 </manifest>
